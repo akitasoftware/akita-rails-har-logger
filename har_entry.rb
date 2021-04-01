@@ -18,7 +18,7 @@ module Akita
         startedDateTime: start_time.strftime('%FT%T.%L%:z'),
         time: wait_time_ms,
         request: (HttpRequest.new env),
-        response: (HttpResponse.new status, headers, body),
+        response: (HttpResponse.new env, status, headers, body),
         cache: {},  # Not applicable to server-side logging.
         timings: {
           send: 0,  # Mandatory, but not applicable to server-side logging.
