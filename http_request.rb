@@ -1,4 +1,5 @@
 require 'json'
+require_relative 'har_utils'
 
 module Akita
   class HttpRequest
@@ -23,18 +24,6 @@ module Akita
       @self.to_json(*args)
     end
 
-    # Utility function for converting a Hash into a list of Hash objects. Each
-    # entry in the given Hash will be represented by a Hash object that maps
-    # 'name' to the entry's key and 'value' to the entry's value.
-    def hashToList(hash)
-      hash.reduce([]) { |accum, (k, v)|
-        accum.append({
-          name: k,
-          value: v,
-        })
-      }
-    end
-
     # Obtains the client-requested HTTP version from an HTTP environment.
     def getHttpVersion(env)
       # XXX This isn't populated when running with `rspec`.
@@ -44,7 +33,7 @@ module Akita
     # Builds a list of cookie objects from an HTTP environment.
     def getCookies(env)
       req = Rack::Request::new env
-      hashToList req.cookies
+      HarUtils.hashToList req.cookies
     end
 
     # Builds a list of headers from an HTTP environment.
@@ -52,7 +41,7 @@ module Akita
       # HTTP headers in the environment can be identified with the "HTTP_"
       # prefix. Filter for these. In the resulting map, rewrite keys of the
       # form "HTTP_FOO_BAR_BAZ" into "Foo-Bar-Baz", and convert into an array.
-      hashToList (
+      HarUtils.hashToList (
         env.select { |k,v| k.start_with? 'HTTP_' }.
           transform_keys { |k|
             k.sub(/^HTTP_/, '').split('_').map(&:capitalize).join('-')
@@ -64,7 +53,7 @@ module Akita
     def getQueryString(env)
       req = Rack::Request::new env
       paramMap = Rack::Utils.parse_nested_query req.query_string
-      hashToList paramMap
+      HarUtils.hashToList paramMap
     end
 
     # Obtains the posted data from an HTTP environment.
@@ -81,7 +70,7 @@ module Akita
           #
           # XXX Spec has space for files, but are file uploads ever
           # URL-encoded?
-          result['params'] = hashToList req.params
+          result['params'] = HarUtils.hashToList req.params
         else
           result['text'] = req.body.string
         end
