@@ -6,11 +6,24 @@ require_relative 'har_logger/writer_thread'
 
 module Akita
   module HarLogger
+    # Adds HAR-logging instrumentation to a Rails application by adding to the
+    # top of the middleware stack.
+    #
+    # Params:
+    # +config+:: the +Rails::Application::Configuration+ associated with the
+    #            Rails application being instrumented.
+    # +har_file_name:: the name of the HAR file to be produced. If the file
+    #                  exists, it will be overwritten.
+    def self.instrument(config, har_file_name)
+      config.middleware.unshift(Middleware, har_file_name)
+    end
+
     # Logs HTTP request-response pairs to a HAR file.
     #
     # Params:
     # +app+:: the application to log.
-    # +out_file_name+:: the name of the HAR file to be produced.
+    # +out_file_name+:: the name of the HAR file to be produced. If the file
+    #                   exists, it will be overwritten.
     class Middleware
       def initialize(app, out_file_name)
         @app = app
