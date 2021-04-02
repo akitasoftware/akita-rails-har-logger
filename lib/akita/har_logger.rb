@@ -14,7 +14,7 @@ module Akita
     #            Rails application being instrumented.
     # +har_file_name:: the name of the HAR file to be produced. If the file
     #                  exists, it will be overwritten.
-    def self.instrument(config, har_file_name)
+    def self.instrument(config, har_file_name = nil)
       config.middleware.unshift(Middleware, har_file_name)
     end
 
@@ -25,8 +25,12 @@ module Akita
     # +out_file_name+:: the name of the HAR file to be produced. If the file
     #                   exists, it will be overwritten.
     class Middleware
-      def initialize(app, out_file_name)
+      def initialize(app, out_file_name = nil)
         @app = app
+
+        if out_file_name == nil then
+          out_file_name = "akita_trace_#{Time.now.to_i}.har"
+        end
 
         # This queue is used to ensure that event logging is thread-safe. The
         # main thread will enqueue HarEntry objects. The HAR writer thread

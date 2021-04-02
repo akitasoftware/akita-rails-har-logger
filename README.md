@@ -32,7 +32,8 @@ top of your middleware stack. For convenience, you can use
     require 'akita/har_logger'
     ```
 2. Add the following line to the bottom of your `Rails::Application`
-   subclass:
+   subclass. Specifying the output file is optional; if not given, it defaults
+   to `akita_trace_{timestamp}.har`.
    ```ruby
    Akita::HarLogger.instrument(config, '/path/to/output/har_file.har')
    ```
