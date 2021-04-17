@@ -1,7 +1,7 @@
-# Akita HTTP Archive (HAR) logger for Rack applications
+# Akita HTTP Archive (HAR) logger for Rack/Rails applications
 
-This provides Rack middleware for logging HTTP request–response pairs to a HAR
-file.
+This provides Rack middleware and a Rails `ActionController` filter for logging
+HTTP request–response pairs to a HAR file.
 
 
 ## Installation
@@ -23,24 +23,59 @@ Or install it yourself as:
 
 ## Usage
 
-To instrument your Rack application, add `Akita::HarLogger::Middleware` to the
-top of your middleware stack. For convenience, you can use
-`Akita::HarLogger.instrument`, as follows.
+There are two options for instrumenting your Rack/Rails application. The first
+is to use the HAR logger as Rack middleware. The second is to use it as a Rails
+`ActionController` filter.
 
-1. In your main `application.rb`, make `Akita::HarLogger` available:
-    ```ruby
-    require 'akita/har_logger'
-    ```
-2. Add the following line to the bottom of your `Rails::Application`
-   subclass. Specifying the output file is optional; if not given, it defaults
-   to `akita_trace_{timestamp}.har`.
-   ```ruby
-   Akita::HarLogger.instrument(config, '/path/to/output/har_file.har')
-   ```
+Depending on the framework you're using, one or both options may be available
+to you. If you are interested in logging RSpec tests, the filter option will
+capture traffic for both controller and request specs, whereas the middleware
+option only captures request specs.
 
-Now, when you run your Rack application, all HTTP requests and responses will
-be logged to the HAR file that you've specified. You can then upload this HAR
-file to Akita for analysis.
+Once your application is instrumented, when you run the application, HTTP
+requests and responses will be logged to the HAR file that you've specified.
+You can then upload this HAR file to Akita for analysis.
+
+### Middleware
+
+To instrument with middleware, add `Akita::HarLogger::Middleware` to the top of
+your middleware stack. For convenience, you can call
+`Akita::HarLogger.instrument` to do this. We recommend adding this call to the
+bottom of `config/environments/test.rb` to add the middleware just to your test
+environment.
+
+Here is a sample configuration for a test environment that just adds the
+instrumentation.
+
+```ruby
+Rails.application.configure.do
+  # Other configuration for the Rails application...
+
+  # Put the HAR logger at the top of the middleware stack, and optionally
+  # give an output HAR file to save your trace. If not specified, this defaults
+  # to `akita_trace_{timestamp}.har`.
+  Akita::HarLogger.instrument(config, "akita_trace.har")
+end
+```
+
+### `ActionController` filter
+
+To instrument with a filter, add an instance of `Akita::HarLogger::Filter` as
+an `around_action` filter to your `ActionController` implementation. Here is an
+example of a bare-bones `app/controllers/application_controller.rb` with this
+instrumentation.
+
+```ruby
+class ApplicationController < ActionController::API
+  include Response
+  include ExceptionHandler
+
+  # Add the HAR logger as an `around_action` filter. Optionally give an output
+  # HAR file to save your trace. If not specified, this defaults to
+  # `akita_trace_{timestamp}.har`.
+  around_action Akita::HarLogger::Filter.new("akita_trace.har")
+end
+```
 
 
 ## Development
