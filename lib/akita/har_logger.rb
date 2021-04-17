@@ -52,5 +52,37 @@ module Akita
         [ status, headers, body ]
       end
     end
+
+    # Logging filter for `ApplicationController`s.
+    # TODO: Some amount of code duplication here. Should refactor.
+    class Filter
+      def initialize(out_file_name = nil)
+        if out_file_name == nil then
+          out_file_name = "akita_trace_#{Time.now.to_i}.har"
+        end
+
+        # This queue is used to ensure that event logging is thread-safe. The
+        # main thread will enqueue HarEntry objects. The HAR writer thread
+        # below dequeues these objects and writes them to the output file.
+        @entry_queue = Queue.new
+        WriterThread.new out_file_name, @entry_queue
+      end
+
+      def around(controller)
+        start_time = Time.now
+
+        yield
+
+        end_time = Time.now
+        wait_time_ms = ((end_time.to_f - start_time.to_f) * 1000).round
+
+        response = controller.response
+        request = response.request
+
+        @entry_queue << (HarEntry.new start_time, wait_time_ms, request.env,
+                                      response.status, response.headers,
+                                      [response.body])
+      end
+    end
   end
 end
