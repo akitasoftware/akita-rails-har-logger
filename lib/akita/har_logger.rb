@@ -53,7 +53,7 @@ module Akita
       end
     end
 
-    # Logging filter for `ApplicationController`s.
+    # Logging filter for `ActionController`s.
     # TODO: Some amount of code duplication here. Should refactor.
     class Filter
       def initialize(out_file_name = nil)
