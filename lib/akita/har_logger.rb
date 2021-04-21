@@ -29,14 +29,10 @@ module Akita
         @app = app
 
         if out_file_name == nil then
-          out_file_name = "akita_trace_#{Time.now.to_i}.har"
+          out_file_name = HarLogger.default_file_name
         end
 
-        # This queue is used to ensure that event logging is thread-safe. The
-        # main thread will enqueue HarEntry objects. The HAR writer thread
-        # below dequeues these objects and writes them to the output file.
-        @entry_queue = Queue.new
-        WriterThread.new out_file_name, @entry_queue
+        @entry_queue = HarLogger.get_queue(out_file_name)
       end
 
       def call(env)
@@ -58,16 +54,21 @@ module Akita
     class Filter
       def initialize(out_file_name = nil)
         if out_file_name == nil then
-          out_file_name = "akita_trace_#{Time.now.to_i}.har"
+          out_file_name = HarLogger.default_file_name
         end
 
-        # This queue is used to ensure that event logging is thread-safe. The
-        # main thread will enqueue HarEntry objects. The HAR writer thread
-        # below dequeues these objects and writes them to the output file.
-        @entry_queue = Queue.new
-        WriterThread.new out_file_name, @entry_queue
+        @entry_queue = HarLogger.get_queue(out_file_name)
       end
 
+      # Registers an `on_load` initializer to add a logging filter to any
+      # ActionController that is created.
+      def self.install(out_file_name = nil, hook_name = :action_controller)
+        ActiveSupport.on_load(hook_name) do
+          around_action Filter.new(out_file_name)
+        end
+      end
+
+      # Implements the actual `around` filter.
       def around(controller)
         start_time = Time.now
 
@@ -83,6 +84,36 @@ module Akita
                                       response.status, response.headers,
                                       [response.body])
       end
+    end
+
+    @@default_file_name = "akita_trace_#{Time.now.to_i}.har"
+    def self.default_file_name
+      @@default_file_name
+    end
+
+    # Maps the name of each output file to a queue of entries to be logged to
+    # that file. The queue is used to ensure that event logging is thread-safe.
+    # The main thread will enqueue HarEntry objects. A HAR writer thread
+    # dequeues these objects and writes them to the output file.
+    @@entry_queues = {}
+    @@entry_queues_mutex = Mutex.new
+
+    # Returns the entry queue for the given file. If an entry queue doesn't
+    # already exist, one is created and a HAR writer thread is started for the
+    # queue.
+    def self.get_queue(out_file_name)
+      queue = nil
+      @@entry_queues_mutex.synchronize {
+        if @@entry_queues.has_key?(out_file_name) then
+          return @@entry_queues[out_file_name]
+        end
+
+        queue = Queue.new
+        @@entry_queues[out_file_name] = queue
+      }
+
+      WriterThread.new out_file_name, queue
+      return queue
     end
   end
 end
