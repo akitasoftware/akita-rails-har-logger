@@ -48,6 +48,8 @@ Here is a sample configuration for a test environment that just adds the
 instrumentation.
 
 ```ruby
+# config/environments/test.rb
+
 Rails.application.configure.do
   # Other configuration for the Rails application...
 
@@ -61,11 +63,30 @@ end
 ### `ActionController` filter
 
 To instrument with a filter, add an instance of `Akita::HarLogger::Filter` as
-an `around_action` filter to your `ActionController` implementation. Here is an
-example of a bare-bones `app/controllers/application_controller.rb` with this
-instrumentation.
+an `around_action` filter to your `ActionController` implementation.
+
+For convenience, you can call `Akita::HarLogger::Filter.install` to do this for
+all `ActionController`s in your application. We recommend adding this call to a
+configuration initializer. For example, this initializer adds the filter only
+in the test environment:
 
 ```ruby
+# config/initializers/har_logging.rb
+
+# Add the HAR logger as an `around_action` filter to all `ActionControllers`
+# that are loaded by the application in the test environment. Optionally give
+# an output HAR file to save your trace. If not specified, this defaults to
+# `akita_trace_{timestamp}.har`.
+Akita::HarLogger::Filter.install("akita_trace.har") if Rails.env.test?
+```
+
+You can also selectively instrument your `ActionController` implementations by
+adding the filter manually. Here is a bare-bones `ActionController`
+implementation that adds the filter only in the test environment.
+
+```ruby
+# app/controllers/application_controller.rb
+
 class ApplicationController < ActionController::API
   include Response
   include ExceptionHandler
@@ -73,7 +94,7 @@ class ApplicationController < ActionController::API
   # Add the HAR logger as an `around_action` filter. Optionally give an output
   # HAR file to save your trace. If not specified, this defaults to
   # `akita_trace_{timestamp}.har`.
-  around_action Akita::HarLogger::Filter.new("akita_trace.har")
+  around_action Akita::HarLogger::Filter.new("akita_trace.har") if Rails.env.test?
 end
 ```
 
