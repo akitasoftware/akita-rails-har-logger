@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
-
 module Akita
   module HarLogger
     # A thread that consumes HarEntry objects from a queue and writes them to a

@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require_relative 'har_utils'
 
 module Akita
@@ -81,12 +80,21 @@ module Akita
           # populate 'text.
           req = Rack::Request.new env
           if env['CONTENT_TYPE'] == 'application/x-www-form-urlencoded' then
-            # Decoded parameters can be found as a map in req.params. Convert
-            # this map into an array.
+            # Decoded parameters can be found as a map in req.params.
             #
-            # XXX Spec has space for files, but are file uploads ever
-            # URL-encoded?
-            result[:params] = HarUtils.hashToList req.params
+            # Requests originating from specs can be malformed: the values in
+            # req.params are not necessarily strings. Encode all of req.params
+            # in JSON and pretend the content type was "application/json".
+            if HarUtils.allValuesAreStrings req.params then
+              # Convert req.params into an array.
+              #
+              # XXX Spec has space for files, but are file uploads ever
+              # URL-encoded?
+              result[:params] = HarUtils.hashToList req.params
+            else
+              result[:mimeType] = 'application/json'
+              result[:text] = req.params.to_json
+            end
           else
             result[:text] = req.body.string
           end

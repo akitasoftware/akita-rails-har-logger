@@ -14,6 +14,17 @@ module Akita
           })
         }
       end
+
+      # Determines whether all values in a Hash are strings.
+      def self.allValuesAreStrings(hash)
+        hash.each do |_, value|
+          if !(value.is_a? String) then
+            return false
+          end
+        end
+
+        return true
+      end
     end
   end
 end
