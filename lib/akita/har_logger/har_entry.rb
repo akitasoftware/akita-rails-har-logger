@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require_relative 'http_request'
 require_relative 'http_response'
 
