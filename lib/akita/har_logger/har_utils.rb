@@ -6,10 +6,10 @@ module Akita
       # Rack apparently uses 8-bit ASCII for everything, even when the string
       # is not 8-bit ASCII. This reinterprets the given string as UTF-8.
       def self.fixEncoding(v)
-        if v != nil then
-          v.force_encoding(Encoding::UTF_8)
+        if v == nil || v.encoding == Encoding::UTF_8 then
+          v
         else
-          nil
+          String.new(v).force_encoding(Encoding::UTF_8)
         end
       end
 
@@ -18,10 +18,9 @@ module Akita
       # 'name' to the entry's key and 'value' to the entry's value.
       def self.hashToList(hash)
         hash.reduce([]) { |accum, (k, v)|
-
           accum.append({
-            name: k,
-            value: v,
+            name: fixEncoding(k),
+            value: fixEncoding(v),
           })
         }
       end
