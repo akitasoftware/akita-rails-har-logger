@@ -36,7 +36,9 @@ module Akita
         # The environment doesn't have HTTP_VERSION when running with `rspec`;
         # assume HTTP/1.1 when this happens. We don't return nil, so we can
         # calculate the size of the headers.
-        env.key?('HTTP_VERSION') ? env['HTTP_VERSION'] : 'HTTP/1.1'
+        env.key?('HTTP_VERSION') ?
+          HarUtils.fixEncoding(env['HTTP_VERSION']) :
+          'HTTP/1.1'
       end
 
       def getCookies(headers)

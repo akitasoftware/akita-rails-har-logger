@@ -11,7 +11,7 @@ module Akita
 
         @self = {
           method: getMethod(env),
-          url: req.url,
+          url: HarUtils.fixEncoding(req.url),
           httpVersion: getHttpVersion(env),
           cookies: getCookies(env),
           headers: getHeaders(env),
@@ -33,7 +33,7 @@ module Akita
 
       # Obtains the client's request method from an HTTP environment.
       def getMethod(env)
-        (Rack::Request.new env).request_method
+        HarUtils.fixEncoding (Rack::Request.new env).request_method
       end
 
       # Obtains the client-requested HTTP version from an HTTP environment.
@@ -41,7 +41,9 @@ module Akita
         # The environment doesn't have HTTP_VERSION when running with `rspec`;
         # assume HTTP/1.1 when this happens. We don't return nil, so we can
         # calculate the size of the headers.
-        env.key?('HTTP_VERSION') ? env['HTTP_VERSION'] : 'HTTP/1.1'
+        env.key?('HTTP_VERSION') ?
+          HarUtils.fixEncoding(env['HTTP_VERSION']) :
+          'HTTP/1.1'
       end
 
       # Builds a list of cookie objects from an HTTP environment.
@@ -71,13 +73,28 @@ module Akita
         HarUtils.hashToList paramMap
       end
 
+      # Obtains the character set of the posted data from an HTTP environment.
+      def getPostDataCharSet(env)
+        req = Rack::Request.new env
+        if req.content_charset != nil then
+          return req.content_charset
+        end
+
+        # RFC 2616 says that "text/*" defaults to ISO-8859-1.
+        if env['CONTENT_TYPE'].start_with?('text/') then
+          return Encoding::ISO_8859_1
+        end
+
+        Encoding.default_external
+      end
+
       # Obtains the posted data from an HTTP environment.
       def getPostData(env)
         if env.key?('CONTENT_TYPE') && env['CONTENT_TYPE'] then
           result = { mimeType: env['CONTENT_TYPE'] }
 
           # Populate 'params' if we have URL-encoded parameters. Otherwise,
-          # populate 'text.
+          # populate 'text'.
           req = Rack::Request.new env
           if env['CONTENT_TYPE'] == 'application/x-www-form-urlencoded' then
             # Decoded parameters can be found as a map in req.params.
@@ -96,7 +113,12 @@ module Akita
               result[:text] = req.params.to_json
             end
           else
-            result[:text] = req.body.string
+            # Rack has been observed to use ASCII-8BIT encoding for the request
+            # body when the request specifies UTF-8. Reinterpret the content
+            # body according to what the request says it is, and re-encode into
+            # UTF-8.
+            result[:text] = req.body.string.encode(Encoding::UTF_8,
+                getPostDataCharSet(env))
           end
 
           result
