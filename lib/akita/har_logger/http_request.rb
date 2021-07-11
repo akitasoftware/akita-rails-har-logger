@@ -116,8 +116,8 @@ module Akita
             # Rack has been observed to use ASCII-8BIT encoding for the request
             # body when the request specifies UTF-8. Reinterpret the content
             # body according to what the request says it is, and re-encode into
-            # the default internal encoding.
-            result[:text] = req.body.string.encode(Encoding.default_internal,
+            # UTF-8.
+            result[:text] = req.body.string.encode(Encoding::UTF_8,
                 getPostDataCharSet(env))
           end
 
