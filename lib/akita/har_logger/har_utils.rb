@@ -4,9 +4,9 @@ module Akita
   module HarLogger
     class HarUtils
       # Rack apparently uses 8-bit ASCII for everything, even when the string
-      # is not 8-bit ASCII. This reinterprets the given string as UTF-8.
+      # is not 8-bit ASCII. This reinterprets 8-bit ASCII strings as UTF-8.
       def self.fixEncoding(v)
-        if v == nil || v.encoding == Encoding::UTF_8 then
+        if v == nil || v.encoding != Encoding::ASCII_8BIT then
           v
         else
           String.new(v).force_encoding(Encoding::UTF_8)
