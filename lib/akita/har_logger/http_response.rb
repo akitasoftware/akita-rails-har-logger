@@ -25,7 +25,7 @@ module Akita
 
       # Obtains the status text corresponding to a status code.
       def getStatusText(status)
-        Rack::Utils::HTTP_STATUS_CODES[status]
+        HarUtils.fixEncoding(Rack::Utils::HTTP_STATUS_CODES[status])
       end
 
       # Obtains the HTTP version in the response.
@@ -65,8 +65,8 @@ module Akita
           if match then cookie_value = match[1] end
 
           result << {
-            name: cookie_name,
-            value: cookie_value,
+            name: HarUtils.fixEncoding(cookie_name),
+            value: HarUtils.fixEncoding(cookie_value),
           }
         }
 
@@ -79,14 +79,14 @@ module Akita
         text = +""
         body.each { |part|
           # XXX Figure out how to join together multi-part bodies.
-          text << part;
+          text << (HarUtils.fixEncoding part);
         }
 
         {
           size: getBodySize(body),
 
           # XXX What to use when no Content-Type is given?
-          mimeType: headers['Content-Type'],
+          mimeType: HarUtils.fixEncoding(headers['Content-Type']),
 
           text: text,
         }
@@ -95,7 +95,9 @@ module Akita
       def getRedirectUrl(headers)
         # Use the "Location" header if it exists. Otherwise, based on some HAR
         # examples found online, it looks like an empty string is used.
-        headers.key?('Location') ? headers['Location'] : ''
+        headers.key?('Location') ?
+          HarUtils.fixEncoding(headers['Location']) :
+          ''
       end
 
       def getHeadersSize(env, status, headers)
