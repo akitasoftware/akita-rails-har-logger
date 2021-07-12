@@ -85,7 +85,7 @@ module Akita
           return Encoding::ISO_8859_1
         end
 
-        Encoding.default_external
+        Encoding::ASCII_8BIT
       end
 
       # Obtains the posted data from an HTTP environment.
@@ -117,8 +117,27 @@ module Akita
             # body when the request specifies UTF-8. Reinterpret the content
             # body according to what the request says it is, and re-encode into
             # UTF-8.
-            result[:text] = req.body.string.encode(Encoding::UTF_8,
-                getPostDataCharSet(env))
+            #
+            # Gracefully handle any characters that are invalid in the source
+            # encoding and characters that have no UTF-8 representation by
+            # replacing with '?'. Log a warning when this happens.
+            source = req.body.string.force_encoding(getPostDataCharSet(env))
+            utf8EncodingSuccessful = false
+            if source.valid_encoding? then
+              begin
+                result[:text] = source.encode(Encoding::UTF_8)
+                utf8EncodingSuccessful = true
+              rescue Encoding::UndefinedConversionError
+                Rails.logger.warn "[#{caller_locations(0, 1)}] Unable to losslessly convert request body from #{source.encoding} to UTF-8. Characters undefined in UTF-8 will be replaced with '?'."
+              end
+            else
+              Rails.logger.warn "[#{caller_locations(0, 1)}] Request body is not valid #{source.encoding}. Invalid characters and characters undefined in UTF-8 will be replaced with '?'."
+            end
+
+            if !utf8EncodingSuccessful then
+              result[:text] = source.encode(Encoding::UTF_8,
+                  invalid: :replace, undef: :replace, replace: '?')
+            end
           end
 
           result
