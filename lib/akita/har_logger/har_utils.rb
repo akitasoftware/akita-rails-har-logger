@@ -5,12 +5,20 @@ module Akita
     class HarUtils
       # Rack apparently uses 8-bit ASCII for everything, even when the string
       # is not 8-bit ASCII. This reinterprets 8-bit ASCII strings as UTF-8.
+      #
+      # If we are unable to do this reinterpretation, return the string
+      # unchanged, but log a warning that points to the caller.
       def self.fixEncoding(v)
-        if v == nil || v.encoding != Encoding::ASCII_8BIT then
-          v
-        else
-          String.new(v).force_encoding(Encoding::UTF_8)
+        if v != nil && v.encoding == Encoding::ASCII_8BIT then
+          forced = String.new(v).force_encoding(Encoding::UTF_8)
+          if forced.valid_encoding? then
+            v = forced
+          else
+            Rails.logger.warn "[#{caller_locations(1, 1)}] Unable to fix encoding: not a valid UTF-8 string. This will likely cause JSON serialization to fail."
+          end
         end
+
+        v
       end
 
       # Converts a Hash into a list of Hash objects. Each entry in the given
