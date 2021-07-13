@@ -74,13 +74,50 @@ module Akita
       end
 
       def getContent(headers, body)
-        # XXX Handle compression & encoding.
+        # XXX Handle compression
+        # XXX Figure out how to properly join together multi-part bodies.
 
+        # Try to convert the body into UTF-8. If this fails, assume the body is
+        # binary data.
+        # XXX TODO Take charset part of Content-Type header into account.
         text = +""
+        haveBinaryData = false
         body.each { |part|
-          # XXX Figure out how to join together multi-part bodies.
-          text << (HarUtils.fixEncoding part);
+          partStr = part.to_s
+
+          if partStr.encoding == Encoding::ASCII_8BIT then
+            # Have 8-bit ASCII data. Try to interpret as UTF-8. If this fails,
+            # treat as binary data.
+            forced = String.new(partStr).force_encoding(Encoding::UTF_8)
+            if forced.valid_encoding? then
+              text << forced
+              next
+            end
+
+            haveBinaryData = true
+            break
+          end
+
+          if !partStr.valid_encoding? then
+            # Source encoding is not valid. Treat as binary data.
+            haveBinaryData = true
+            break
+          end
+
+          # Try to re-encode as UTF-8. If this fails, treat as binary data.
+          begin
+            text << partStr.encode(Encoding::UTF_8)
+          rescue Encoding::UndefinedConversionError
+            haveBinaryData = true
+            break
+          end
         }
+
+        if haveBinaryData then
+          # TODO Encode binary body data with base64.
+          # XXX Omit for now.
+          text = ""
+        end
 
         {
           size: getBodySize(body),
