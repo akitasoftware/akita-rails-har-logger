@@ -85,7 +85,7 @@ module Akita
           return Encoding::ISO_8859_1
         end
 
-        Encoding::ASCII_8BIT
+        Encoding::UTF_8
       end
 
       # Obtains the posted data from an HTTP environment.
