@@ -153,7 +153,7 @@ module Akita
         # for the CRLF on the blank line.
         headers.reduce(status_length + 2) { |accum, (k, v)|
           # Header-Name: header value<CR><LF>
-          accum + k.length + 2 + v.length + 2
+          accum + k.length + 2 + v.to_s.length + 2
         }
       end
 
