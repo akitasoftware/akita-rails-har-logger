@@ -163,7 +163,7 @@ module Akita
         # for the CRLF on the blank line.
         getHeaders(env).reduce(line_length + 2) { |accum, entry|
           # Header-Name: header value<CR><LF>
-          accum + entry[:name].length + 2 + entry[:value].length + 2
+          accum + entry[:name].length + 2 + entry[:value].to_s.length + 2
         }
       end
 
