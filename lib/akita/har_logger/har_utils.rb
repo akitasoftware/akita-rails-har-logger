@@ -39,7 +39,7 @@ module Akita
         hash.reduce([]) { |accum, (k, v)|
           accum.append({
             name: fixEncoding(k),
-            value: fixEncoding(v),
+            value: fixEncoding(v.to_s),
           })
         }
       end
