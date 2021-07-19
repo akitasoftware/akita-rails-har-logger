@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    akita-har_logger (0.2.8)
+    akita-har_logger (0.2.9)
 
 GEM
   remote: https://rubygems.org/
