@@ -37,13 +37,26 @@ module Akita
 
       def call(env)
         start_time = Time.now
+
+        # Read the request body here, in case there is non-Rack-compliant
+        # middleware in the stack that closes the request-body stream on us.
+        request_body = env['rack.input'].read
+        env['rack.input'].rewind  # Be kind.
+
         status, headers, body = @app.call(env)
         end_time = Time.now
 
         wait_time_ms = ((end_time.to_f - start_time.to_f) * 1000).round
 
+        # Patch env with our saved request body.
+        saved_input = env['rack.input']
+        env['rack.input'] = StringIO.new request_body
+
         @entry_queue << (HarEntry.new start_time, wait_time_ms, env, status,
                                       headers, body)
+
+        # Be kind and restore the original request-body stream.
+        env['rack.input'] = saved_input
 
         [ status, headers, body ]
       end
@@ -72,6 +85,11 @@ module Akita
       def around(controller)
         start_time = Time.now
 
+        # Read the request body here, in case there is non-Rack-compliant
+        # middleware in the stack that closes the request-body stream on us.
+        request_body = controller.response.request.env['rack.input'].read
+        controller.response.request.env['rack.input'].rewind  # Be kind.
+
         yield
 
         end_time = Time.now
@@ -80,9 +98,16 @@ module Akita
         response = controller.response
         request = response.request
 
+        # Patch env with our saved request body.
+        saved_input = request.env['rack.input']
+        request.env['rack.input'] = StringIO.new request_body
+
         @entry_queue << (HarEntry.new start_time, wait_time_ms, request.env,
                                       response.status, response.headers,
                                       [response.body])
+
+        # Be kind and restore the original request-body stream.
+        request.env['rack.input'] = saved_input
       end
     end
 

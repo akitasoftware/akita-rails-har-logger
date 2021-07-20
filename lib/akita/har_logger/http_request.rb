@@ -122,7 +122,7 @@ module Akita
             # encoding and characters that have no UTF-8 representation by
             # replacing with '?'. Log a warning when this happens.
             sourceCharset = getPostDataCharSet(env)
-            source = String.new(req.body.string).force_encoding(sourceCharset)
+            source = String.new(req.body.read).force_encoding(sourceCharset)
             utf8EncodingSuccessful = false
             if source.valid_encoding? then
               begin
