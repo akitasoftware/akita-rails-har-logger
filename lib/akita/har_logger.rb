@@ -138,13 +138,23 @@ module Akita
     # queue.
     def self.get_queue(out_file_name)
       queue = nil
+      Rails.logger.debug "AKITA: About to acquire entry-queue mutex "\
+                         "#{@@entry_queues_mutex} in #{Thread.current}. "\
+                         "Self-owned? #{@@entry_queues_mutex.owned?}"
       @@entry_queues_mutex.synchronize {
-        if @@entry_queues.has_key?(out_file_name) then
-          return @@entry_queues[out_file_name]
-        end
+        begin
+          Rails.logger.debug "AKITA: Acquired entry-queue mutex "\
+                             "#{@@entry_queues_mutex} in #{Thread.current}."
+          if @@entry_queues.has_key?(out_file_name) then
+            return @@entry_queues[out_file_name]
+          end
 
-        queue = Queue.new
-        @@entry_queues[out_file_name] = queue
+          queue = Queue.new
+          @@entry_queues[out_file_name] = queue
+        ensure
+          Rails.logger.debug "AKITA: About to release entry-queue mutex "\
+                             "#{@@entry_queues_mutex} in #{Thread.current}."
+        end
       }
 
       WriterThread.new out_file_name, queue
