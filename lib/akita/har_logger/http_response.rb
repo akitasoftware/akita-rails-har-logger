@@ -159,7 +159,9 @@ module Akita
 
       def getBodySize(body)
         length = 0
-        body.each { |part| length += part.bytesize }
+        # Convert each body part into a string in case we're dealing with
+        # non-Rack-compliant components.
+        body.each { |part| length += part.to_s.bytesize }
         length
       end
     end

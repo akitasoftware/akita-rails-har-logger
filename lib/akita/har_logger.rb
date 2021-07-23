@@ -52,6 +52,9 @@ module Akita
         saved_input = env['rack.input']
         env['rack.input'] = StringIO.new request_body
 
+        # Buffer the response body in case it's not a rewindable stream.
+        body = HarLogger.bufferBody(body)
+
         @entry_queue << (HarEntry.new start_time, wait_time_ms, env, status,
                                       headers, body)
 
@@ -60,6 +63,13 @@ module Akita
 
         [ status, headers, body ]
       end
+    end
+
+    # Reads the given body into an array and returns the result.
+    def self.bufferBody(body)
+      result = []
+      body.each { |part| result << part }
+      result
     end
 
     # Logging filter for `ActionController`s.
