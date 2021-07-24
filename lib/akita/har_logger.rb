@@ -33,6 +33,9 @@ module Akita
         end
 
         @entry_queue = HarLogger.get_queue(out_file_name)
+      rescue => e
+        HarLogger.logException("initializing middleware", e)
+        raise
       end
 
       def call(env)
@@ -62,7 +65,19 @@ module Akita
         env['rack.input'] = saved_input
 
         [ status, headers, body ]
+      rescue => e
+        HarLogger.logException("handling request", e)
+        raise
       end
+    end
+
+    # Logs the given exception.
+    def self.logException(context, e)
+      Rails.logger.debug "AKITA: Exception while #{context}: #{e.message} "\
+                         "(#{e.class.name})"
+      e.backtrace.each { |frame|
+        Rails.logger.debug "AKITA:   #{frame}"
+      }
     end
 
     # Reads the given body into an array and returns the result.
@@ -81,6 +96,9 @@ module Akita
         end
 
         @entry_queue = HarLogger.get_queue(out_file_name)
+      rescue => e
+        HarLogger.logException("initializing filter", e)
+        raise
       end
 
       # Registers an `on_load` initializer to add a logging filter to any
@@ -118,6 +136,9 @@ module Akita
 
         # Be kind and restore the original request-body stream.
         request.env['rack.input'] = saved_input
+      rescue => e
+        HarLogger.logException("handling request", e)
+        raise
       end
     end
 
